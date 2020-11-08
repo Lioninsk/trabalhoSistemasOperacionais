@@ -47,8 +47,7 @@ class Cpu:
     def setNumeroMemoriaDeDados(self, i, numero):
         self.acessoMemoria.setNumeroMemoriaDeDados(i, numero)
 
-    def getMemoriaDeDados(self):
-        self.acessoMemoria.getMemoriaDeDados()
+
     
 
 

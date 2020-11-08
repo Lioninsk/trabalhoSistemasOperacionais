@@ -2,15 +2,6 @@ class Memoria:
     memoriaDePrograma = []
     memoriaDeDados = []
 
-    def setMemoriaDePrograma(self, memoriaDePrograma):
-        self.memoriaDePrograma = memoriaDePrograma
-    
-    def getMemoriaDePrograma(self):
-        return self.memoriaDePrograma
-    
-    def getMemoriaDeDados(self):
-        return self.memoriaDeDados
-    
     def getLinhaMemoriaPrograma(self, i):
         return self.memoriaDePrograma[i]
 
