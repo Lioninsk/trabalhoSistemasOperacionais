@@ -6,7 +6,11 @@ def leituraDoArquivo():
     for file in files:
         with open(file, 'r') as fp:
             fileData = fp.readlines()
+    if(fileData == []):
+        print("Memoria de programa vazia!")
+        exit(0)
     return fileData
+
 
 def cpu_estado_inicializa(cpuEstado):
     cpuEstado.save(0,0,"normal")
@@ -29,6 +33,15 @@ def cpu_interrupcao(cpu):
 def cpu_instrucao (cpu):
     return cpu.getInstrucao()
 
+def cpu_estado_altera_acumulador(cpuEstado, novo_valor_do_acum):
+    cpuEstado.setAcumulador(novo_valor_do_acum)
+
+def retorna_cpuEstado_acumulador(cpuEstado):
+    return cpuEstado.getAcumulador()
+
+def incrementaPc(cpu):
+    cpu.setPc(cpu.getPc()+1)
+
 def executa(cpu):
     pcAnterior = cpu.getPc()
     instrucao = cpu_instrucao(cpu)
@@ -39,10 +52,11 @@ def executa(cpu):
     if(idInstrucao != -1) :
         Comandos.executaComando(cpu, idInstrucao, instrucao)
     else:
-        cpu.setEstado("Interrompido")
+        if(cpu.getEstado() != "memory violation"):
+            cpu.setEstado("Interrompido")
         return
 
     if(cpu.getPc() == pcAnterior):#incrementa pc caso não haja interrupção ou desvio
-        cpu.setPc(cpu.getPc()+1)
+        incrementaPc(cpu)
 
 

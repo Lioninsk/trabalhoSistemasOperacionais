@@ -22,6 +22,9 @@ class Cpu:
 
     def setEstado(self, estado):
         self.estado = estado
+    
+    def memoryViolation(self):
+        self.estado = "memory violation"
 
     def getPc(self):
         return self.pc
@@ -33,19 +36,31 @@ class Cpu:
         return self.estado
     
     def setMemoriaPrograma(self, instrucoes):
-        self.acessoMemoria.setMemoriaPrograma(instrucoes)
+        try:
+            self.acessoMemoria.setMemoriaPrograma(instrucoes)
+        except:
+            self.memoryViolation()
     
     def setMemoriaDados(self, vet):
-        self.acessoMemoria.setMemoriaDados(vet)
+        try:
+            self.acessoMemoria.setMemoriaDados(vet)
+        except:
+            self.memoryViolation()
     
     def getInstrucao(self):
         return self.acessoMemoria.getInstrucao(self.pc)
     
     def getValorMemoriaDeDados(self, i):
-        return self.acessoMemoria.getValorMemoriaDeDados(i)
+        try:
+            return self.acessoMemoria.getValorMemoriaDeDados(i)
+        except:
+            self.memoryViolation()
     
     def setNumeroMemoriaDeDados(self, i, numero):
-        self.acessoMemoria.setNumeroMemoriaDeDados(i, numero)
+        try:
+            self.acessoMemoria.setNumeroMemoriaDeDados(i, numero)
+        except:
+            self.memoryViolation()
 
 
     

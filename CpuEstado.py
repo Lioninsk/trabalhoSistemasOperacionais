@@ -9,10 +9,10 @@ class CpuEstadoT:
         self.acumulador = acumulador
         self.estado = estado
     
-    def setPc(self, estado):
+    def setPc(self, pc):
         self.pc = pc
 
-    def setAcumulador(self, estado):
+    def setAcumulador(self, acumulador):
         self.acumulador = acumulador
 
     def setEstado(self, estado):
