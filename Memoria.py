@@ -6,10 +6,12 @@ class Memoria:
         return self.memoriaDePrograma[i]
 
     def setMemoriaPrograma(self, memoriaPrograma):
+        self.memoriaDePrograma.clear()
         for linha in memoriaPrograma:
             self.memoriaDePrograma.append(linha)
     
     def setMemoriaDados(self, memoriaDeDados):
+        self.memoriaDeDados.clear()
         for item in memoriaDeDados:
             self.memoriaDeDados.append(item)
     

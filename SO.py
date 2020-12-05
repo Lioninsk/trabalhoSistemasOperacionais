@@ -1,14 +1,19 @@
 import Cpu, CpuEstado, Memoria, Interface, Controlador, glob
-
+import Descritor, os, Timer
+import Descritor, os, Timer
 
 
 class SistemaOperacional:
 
-    def __init__(self, cpuEstado):
-        self.cpuEstado = cpuEstado
+    def __init__(self):
+        self.cpuEstado = CpuEstado.CpuEstadoT()
+        self.memoria = Memoria.Memoria()
+        self.cpu = Cpu.Cpu(self.memoria)
+        self.dir = os.path.dirname(os.path.realpath(__file__))
+        self.timer = Timer.Timer()
+    
 
     def retornaId(self, comando):
-        
         try:
             comandoId = {
                     "PARA"  : 1,
@@ -16,88 +21,85 @@ class SistemaOperacional:
                     "GRAVA" : 3,
                 }[comando]
         except:
-            interrompe("instrucao ilegal")
+            
+            self.interrompe("instrucao ilegal")
         return comandoId
 
     def para(self, num):
         print(f"CpuEstado acumulador: {Interface.retorna_cpuEstado_acumulador(self.cpuEstado)}")
-        print(f"exit code:{num}")
-        exit(num)
+        print(f"programa {self.jobAtual.getPrograma()} parou code:{num}")
 
     def le(self, dispositivo):
-        with open(glob.glob(f'cpu/ES/{dispositivo}.txt')[0], "r") as file:
+        with open(f"{self.dir + self.jobAtual.getDispEntrada() + dispositivo}.txt", "r") as file:
             try:                
                 valor = int(file.readlines()[-1])
+                
             except:
-                print("Error in E/S")
+                print("Error in E/S LE")
                 exit(-1)
         Interface.cpu_estado_altera_acumulador(self.cpuEstado ,valor)
+        
 
     def grava(self, dispositivo):
         numero = str(Interface.retorna_cpuEstado_acumulador(self.cpuEstado))
         
-        file = glob.glob(f'cpu/ES/{dispositivo}.txt')[0]
-        with open(file, "a") as file:
-            file.write(numero+"\n")
-
-
-            
+        try:
+            file = f"{self.dir + self.jobAtual.getArqSaida() + dispositivo}.txt"
+            with open(file, "a") as file:
+                file.write(numero+"\n")
+        except:
+            print("Error in E/S GRAVA")
+            exit(-1)
+    
 
     def executa(self, idInstrucao, instrucao):
-        argumento = int(instrucao[1])
         if idInstrucao == 1:
+            argumento = int(instrucao[1])
             self.para(argumento)
-        elif idInstrucao == 2:
-            self.le(argumento)
+            return True
         else:
-            self.grava(argumento)
+            
+            argumento = instrucao[1]
+            Interface.cpu_salva_estado(self.cpu, self.cpuEstado)
+            self.cpu.dorme()
+            
+            if(idInstrucao == 2):
+                self.timer.interrompe("Leitura", self.jobAtual.getTempoLeitura())
+                self.le(argumento)
+            else:
+                self.timer.interrompe("Escrita", self.jobAtual.getTempoEscrita())
+                self.grava(argumento)
+           
+            Interface.cpu_altera_estado(self.cpu, self.cpuEstado)
+            return False
 
-    def interrompe(interrupcao):
+
+    def interrompe(self,interrupcao):
         print(f"Sistema interrompido por {interrupcao}")
         if(interrupcao == "memory violation"):
-            para(-1)
+            exit(-1)
         else:
-            para(-2)
-
-
-
-
-
-            
+            exit(-2)
     
     
+    def inicializa(self, filaJobs, controlador):
+        for job in filaJobs:
+            self.jobAtual = job
+            instrucoes = Interface.leituraArquivo(job.getPrograma()) 
+            vet = [None]*job.getQtdMemoria()#inicializa vetor com a memoria do job
+            Interface.cpu_estado_inicializa(self.cpuEstado)#definição das variaveis iniciais cpuEstado
+            Interface.cpu_altera_estado(self.cpu, self.cpuEstado)#definição das variaveis iniciais da cpu
+            Interface.cpu_altera_programa(self.cpu, instrucoes)#passagem das instrucoes para memoria de programa
+            Interface.cpu_altera_dados(self.cpu, vet)#passagem do vetor para memoria de dados
+            controlador.mainLoop()
 
 
+job1 = Descritor.DescritorJobs("instrucoes", qtdMemoria=4, dispEntrada=f"/ES/", arqSaida=f"/ES/", tempoEntrada=5, tempoSaida=5)
+job2 = Descritor.DescritorJobs("instrucoes2", qtdMemoria=4, dispEntrada=f"/ES/", arqSaida=f"/ES/", tempoEntrada=3, tempoSaida=6)
+filaJobs = []
+filaJobs.append(job1)
+filaJobs.append(job2)
 
-
-cpuEstado = CpuEstado.CpuEstadoT()#inicializa cpu estado
-
-so = SistemaOperacional(cpuEstado)
-memoria = Memoria.Memoria()#inicializa memoria
-cpu = Cpu.Cpu(memoria)#inicializa cpu passando acesso a memoria
-vet = [None]*4#inicializa vetor com 4 posicoes nulas
-instrucoes = Interface.leituraDoArquivo()#leitura do arquivo
-
-Interface.cpu_estado_inicializa(cpuEstado)#definição das variaveis iniciais cpuEstado
-
-Interface.cpu_altera_estado(cpu, cpuEstado)#definição das variaveis iniciais da cpu
-Interface.cpu_altera_programa(cpu, instrucoes)#passagem das instrucoes para memoria de programa
-Interface.cpu_altera_dados(cpu, vet)#passagem do vetor para memoria de dados
-
-controlador = Controlador.Controlador(cpu = cpu, so = so)
-controlador.mainLoop()
-
-
-
-
-
-
-    
-
-    
-
-
-
-
-
-
+so = SistemaOperacional()
+controlador = Controlador.Controlador(so.cpu, so, so.cpuEstado)
+so.inicializa(filaJobs, controlador)
