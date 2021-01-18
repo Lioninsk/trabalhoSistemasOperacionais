@@ -48,8 +48,11 @@ class Cpu:
             self.memoryViolation()
     
     def getInstrucao(self):
-        return self.acessoMemoria.getInstrucao(self.pc)
-    
+        try:
+            return self.acessoMemoria.getInstrucao(self.pc)
+        except:
+            self.memoryViolation() 
+
     def getValorMemoriaDeDados(self, i):
         try:
             return self.acessoMemoria.getValorMemoriaDeDados(i)
@@ -61,6 +64,9 @@ class Cpu:
             self.acessoMemoria.setNumeroMemoriaDeDados(i, numero)
         except:
             self.memoryViolation()
+    
+    def dorme(self):
+        self.estado = "dorme"
 
 
     

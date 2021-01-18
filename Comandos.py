@@ -1,4 +1,5 @@
 def retornaComandoId(comando):
+    
     try:
         comandoId = {
                 "CARGI" : 1,

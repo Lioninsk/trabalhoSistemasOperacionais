@@ -6,6 +6,7 @@ def leituraArquivo(nomeArquivo):
     pasta = "/programas/"
     dir = os.path.dirname(os.path.realpath(__file__))
     file = f"{dir + pasta + nomeArquivo}.txt"
+    print(file)
     try:
         with open(file, 'r') as fp:
             fileData = fp.readlines()
@@ -48,11 +49,10 @@ def retorna_cpuEstado_acumulador(cpuEstado):
     return cpuEstado.getAcumulador()
 
 def incrementaPc(cpu):
-    cpu.setPc(cpu.getPc()+1)
+    cpu.setPc(cpu.getPc() + 1)
 
 def executa(cpu, cpuEstado):
-    # print(f"---------CPUESTADO :{cpu.getAcumulador()}")
-    if(cpu_interrupcao(cpu) == "dormindo"):
+    if(cpu_interrupcao(cpu) != "normal"):
         return
     pcAnterior = cpu.getPc()
     try:
@@ -70,7 +70,6 @@ def executa(cpu, cpuEstado):
             cpu_salva_estado(cpu, cpuEstado)
             cpu.setEstado("Interrompido")
         return
-    # print(f"pc:{pcAnterior} acumulador:{cpu.acumulador} comando:{comando}")
     if(cpu.getPc() == pcAnterior):#incrementa pc caso não haja interrupção ou desvio
         incrementaPc(cpu)
 

@@ -1,0 +1,5 @@
+LE 0
+GRAVA 2
+LE 1
+GRAVA 3
+PARA 

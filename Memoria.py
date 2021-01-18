@@ -11,9 +11,7 @@ class Memoria:
             self.memoriaDePrograma.append(linha)
     
     def setMemoriaDados(self, memoriaDeDados):
-        self.memoriaDeDados.clear()
-        for item in memoriaDeDados:
-            self.memoriaDeDados.append(item)
+        self.memoriaDeDados = memoriaDeDados
     
     def setNumeroMemoriaDeDados(self, i, numero):
         self.memoriaDeDados[i] = numero

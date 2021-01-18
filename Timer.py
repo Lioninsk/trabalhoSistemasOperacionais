@@ -3,52 +3,115 @@ import time
 class Timer:
   
   count = 0
+  countOcioso = 0
+  countPreempcao = 0
   interrupcoes = []
+
+
   
   
-  def aumentaContador(self):
+  def aumentaContador(self, interrupcao, processo):
     time.sleep(1)
     self.count += 1
+
+    if interrupcao == "dorme":
+       self.countOcioso += 1
+    else:
+       self.aumentaTempoCpu(processo)
    
   def timerAgora(self):
     return self.count
    
-  def setInterrupcao(self, tempo, interrupcao):
-    self.interrupcoes.append([interrupcao, tempo])
+  def setInterrupcao(self, tempo, interrupcao, idProcesso):
+    self.interrupcoes.append([interrupcao, tempo, idProcesso])
   
   def getInterrupcao(self):
+    if self.interrupcoes == []:
+       return "nenhum"
+    self.aumentaTempoBloqueado(self.interrupcoes[0][2])
     if(self.count >= self.interrupcoes[0][1]):
-        interrupcao = self.interrupcoes[0][0]
+        interrupcao = self.interrupcoes[0][2]
         self.interrupcoes.pop(0)
-    else:
+    else:    
         interrupcao = "nenhum"
     return interrupcao
   
-  def zera(self):
-    self.count = 0
-    
   
-  def interrompe(self, interrupcao, tempo):
-    self.zera()
-    self.setInterrupcao(1, interrupcao)
-    self.setInterrupcao(tempo, "fim")
-    while(True):
-        self.aumentaContador()
-        tipo = self.getInterrupcao()
-        if(tipo == "nenhum"):
-            print(f"Timer agora {self.timerAgora()}")
-        else:
-            while True:
-                  if(tipo == "fim"):
-                      print("*Fim do processo*\n")
-                      return
-                  print(f"\nInterrupcao:{tipo}")
-                  tipo = self.getInterrupcao()
-                  if(tipo == "nenhum"):
-                      break
-    
-   
+  def aumentaPreempcao(self):
+    self.countPreempcao += 1
 
+  def setTempoInicioFim(self, tempo, chave, processo):
+    if chave == "inicio":
+      self.tempoInicio[processo - 1] = tempo
+    else:
+      self.tempoFim[processo - 1] = tempo
+    
+  def numeroDeProcessos(self, numero):
+    self.tempoCpuProcesso = [0] * numero
+    self.tempoInicio = [0] * numero
+    self.tempoFim = [0] * numero
+    self.tempoBloqueado = [0] * numero
+    self.tempoRetorno = [0] * numero
+    self.numeroBloqueios = [0] * numero
+    self.numeroEscalonamentos = [0] * numero
+    self.numeroPreeempcao = [0] * numero
+    self.percentualCpu = [0] * numero
+
+
+  def aumentaTempoCpu(self, processo):#feito
+        self.tempoCpuProcesso[processo-1] += 1
+
+  def aumentaTempoBloqueado(self, processo):#feito
+        self.tempoBloqueado[processo-1] += 1
+
+  def aumentaBloqueiosProcesso(self, processo):#feito
+        self.numeroBloqueios[processo-1] += 1
+
+  def aumentaNumeroEscalonamentos(self, processo):#feito
+        self.numeroEscalonamentos[processo-1] += 1
+
+  def aumentaPreempcaoProcesso(self, processo):#feito
+        self.numeroPreeempcao[processo-1] += 1
+  
+  
+  def setRetorno(self):
+    for i in range(len(self.tempoFim)):
+      self.tempoRetorno[i] = self.tempoFim[i] - self.tempoInicio[i]
+  
+  def setPercentualCpu(self):
+    for i in range(len(self.tempoCpuProcesso)):
+      self.percentualCpu[i] = f"{int(round(self.tempoCpuProcesso[i] / self.count, 2) * 100)}%"
+
+  
+
+  def getCountOcioso(self):
+    return self.countOcioso
+  def getPreemcoesTotais(self):
+    return self.countPreempcao
+  def getTempoInicio(self):
+    return self.tempoInicio
+  def getTempoFim(self):
+    return self.tempoFim
+  def getTempoCpuProcesso(self):
+    return self.tempoCpuProcesso
+  def getTempoBloqueado(self):
+    return self.tempoBloqueado
+  def getNumeroBloqueios(self):
+    return self.numeroBloqueios
+  def getNumeroEscalonamentos(self):
+    return self.numeroEscalonamentos
+  def getNumeroPreempcao(self):
+    return self.numeroPreeempcao
+  def getTempoRetorno(self):
+    return self.tempoRetorno
+  def getPercentual(self):
+    return self.percentualCpu
+  
+  
+  
+
+
+        
 
 
 

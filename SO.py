@@ -1,18 +1,21 @@
 import Cpu, CpuEstado, Memoria, Interface, Controlador, glob
-import Descritor, os, Timer
-import Descritor, os, Timer
+import Descritor, os, Timer, DescritorProcesso, Escalonador
+import pandas as pd
 
 
 class SistemaOperacional:
 
     def __init__(self):
-        self.cpuEstado = CpuEstado.CpuEstadoT()
         self.memoria = Memoria.Memoria()
-        self.cpu = Cpu.Cpu(self.memoria)
         self.dir = os.path.dirname(os.path.realpath(__file__))
         self.timer = Timer.Timer()
+        self.contadorExecucao = 0
+        self.contadorLeitura = 0
+        self.contadorEscrita = 0
+        self.contadorPara = 0
+        self.contadorTrocaProcessos = 0
+        
     
-
     def retornaId(self, comando):
         try:
             comandoId = {
@@ -21,58 +24,56 @@ class SistemaOperacional:
                     "GRAVA" : 3,
                 }[comando]
         except:
-            
             self.interrompe("instrucao ilegal")
         return comandoId
 
-    def para(self, num):
+    def para(self):
         print(f"CpuEstado acumulador: {Interface.retorna_cpuEstado_acumulador(self.cpuEstado)}")
-        print(f"programa {self.jobAtual.getPrograma()} parou code:{num}")
+        print(f"programa {self.jobAtual.getPrograma()} parou!")
 
     def le(self, dispositivo):
+        self.contadorLeitura += 1
         with open(f"{self.dir + self.jobAtual.getDispEntrada() + dispositivo}.txt", "r") as file:
             try:                
                 valor = int(file.readlines()[-1])
-                
             except:
                 print("Error in E/S LE")
                 exit(-1)
-        Interface.cpu_estado_altera_acumulador(self.cpuEstado ,valor)
+        Interface.cpu_estado_altera_acumulador(self.cpuEstado, valor)
+        
         
 
     def grava(self, dispositivo):
+        self.contadorEscrita += 1
         numero = str(Interface.retorna_cpuEstado_acumulador(self.cpuEstado))
         
         try:
-            file = f"{self.dir + self.jobAtual.getArqSaida() + dispositivo}.txt"
-            with open(file, "a") as file:
+            path = f"{self.dir + self.jobAtual.getArqSaida() + dispositivo}.txt"
+            mode = 'a' if os.path.exists(path) else 'w'
+            with open(path, mode) as file:
                 file.write(numero+"\n")
         except:
             print("Error in E/S GRAVA")
             exit(-1)
     
-
     def executa(self, idInstrucao, instrucao):
+        self.contadorExecucao += 1
         if idInstrucao == 1:
-            argumento = int(instrucao[1])
-            self.para(argumento)
+            self.para()
+            self.contadorPara += 1
             return True
         else:
-            
             argumento = instrucao[1]
-            Interface.cpu_salva_estado(self.cpu, self.cpuEstado)
-            self.cpu.dorme()
-            
             if(idInstrucao == 2):
-                self.timer.interrompe("Leitura", self.jobAtual.getTempoLeitura())
+                tempoLeitura = self.timer.timerAgora() + self.jobAtual.getTempoLeitura()
+                self.timer.setInterrupcao(tempoLeitura, "leitura", self.jobAtual.getData())
                 self.le(argumento)
             else:
-                self.timer.interrompe("Escrita", self.jobAtual.getTempoEscrita())
+                tempoEscrita = self.timer.timerAgora() + self.jobAtual.getTempoEscrita()
+                self.timer.setInterrupcao(tempoEscrita, "escrita", self.jobAtual.getData())
                 self.grava(argumento)
-           
             Interface.cpu_altera_estado(self.cpu, self.cpuEstado)
             return False
-
 
     def interrompe(self,interrupcao):
         print(f"Sistema interrompido por {interrupcao}")
@@ -81,25 +82,144 @@ class SistemaOperacional:
         else:
             exit(-2)
     
-    
     def inicializa(self, filaJobs, controlador):
+        self.escalonador = Escalonador.Escalonador()
         for job in filaJobs:
-            self.jobAtual = job
             instrucoes = Interface.leituraArquivo(job.getPrograma()) 
             vet = [None]*job.getQtdMemoria()#inicializa vetor com a memoria do job
-            Interface.cpu_estado_inicializa(self.cpuEstado)#definição das variaveis iniciais cpuEstado
-            Interface.cpu_altera_estado(self.cpu, self.cpuEstado)#definição das variaveis iniciais da cpu
-            Interface.cpu_altera_programa(self.cpu, instrucoes)#passagem das instrucoes para memoria de programa
-            Interface.cpu_altera_dados(self.cpu, vet)#passagem do vetor para memoria de dados
-            controlador.mainLoop()
+            self.escalonador.setProcesso(DescritorProcesso.DescritorProcesso(job, vet, instrucoes, [], []))
+        self.execucaoProcessos(controlador)
+
+    def execucaoProcessos(self, controlador):
+        self.timer.numeroDeProcessos(self.escalonador.getNumeroProcessos())#prepara o timer para suportar informações com base no numero de processos
+        while True:
+            processoAtual = self.proximoProcesso()
+            self.timer.aumentaNumeroEscalonamentos(processoAtual.getJob().getData())
+            processoAtual.setQuantum(self.escalonador.getQuantum() + self.timer.timerAgora()) 
+            self.quantumProcesso = processoAtual.getQuantum()
+            status = processoAtual.getEstadoProcesso()
+            if(status == "iniciado"):
+                self.iniciaProcesso(processoAtual)
+            elif status in ["continuo", "bloqueado"]:
+                self.carregaProcesso(processoAtual)
+            retorno = controlador.mainLoop(self.timer, processoAtual)
+            if retorno == "para":
+                self.timer.setTempoInicioFim(self.timer.timerAgora(), "fim", processoAtual.getJob().getData())
+                processoAtual.setEstadoProcesso("finalizado")
+            else:
+                if(retorno != "quantum"):
+                    self.timer.aumentaBloqueiosProcesso(processoAtual.getJob().getData())
+                    processoAtual.setEstadoProcesso("bloqueado")
+                else:
+                    processoAtual.setEstadoProcesso("continuo")
+                if(self.timer.interrupcoes == []):
+                    self.checaDormindo()
+            self.escalonador.ajustaPrioridade(processoAtual, self.timer.timerAgora())
+    
+
+    def iniciaProcesso(self, processo):
+        self.timer.setTempoInicioFim(self.timer.timerAgora(), "inicio", processo.getJob().getData())
+        processo.setCpu(Cpu.Cpu(self.memoria))
+        processo.setCpuEst(CpuEstado.CpuEstadoT())
+        self.cpu = processo.getCpu()
+        self.cpuEstado = processo.getCpuEst()
+        self.jobAtual = processo.getJob()
+        Interface.cpu_estado_inicializa(self.cpuEstado)#definição das variaveis iniciais cpuEstado
+        Interface.cpu_altera_estado(self.cpu, self.cpuEstado)#definição das variaveis iniciais da cpu
+        Interface.cpu_altera_programa(self.cpu, processo.getMemoriaPrograma())#passagem das instrucoes para memoria de programa
+        Interface.cpu_altera_dados(self.cpu, processo.getMemoriaDados())#passagem do vetor para memoria de dados
+        
+    def carregaProcesso(self, processo):
+        self.checaInterrompido(processo)
+        self.jobAtual = processo.getJob()
+        self.cpu = processo.getCpu()
+        self.cpuEstado = processo.getCpuEst()
+        Interface.cpu_altera_programa(self.cpu, processo.getMemoriaPrograma())
+        Interface.cpu_altera_dados(self.cpu, processo.getMemoriaDados())
 
 
-job1 = Descritor.DescritorJobs("instrucoes", qtdMemoria=4, dispEntrada=f"/ES/", arqSaida=f"/ES/", tempoEntrada=5, tempoSaida=5)
-job2 = Descritor.DescritorJobs("instrucoes2", qtdMemoria=4, dispEntrada=f"/ES/", arqSaida=f"/ES/", tempoEntrada=3, tempoSaida=6)
-filaJobs = []
-filaJobs.append(job1)
-filaJobs.append(job2)
+    
+    def checaInterrompido(self, processo):
+        cpuProcesso = processo.getCpu()
+        if(cpuProcesso.getEstado() == "Interrompido"):
+            cpuProcesso.setEstado("normal")
+        
+    
+    def proximoProcesso(self):
+        self.contadorTrocaProcessos += 1
+        statusProximoProcesso = self.escalonador.processosDisponiveis() 
+        if(statusProximoProcesso == "next"):
+            return self.escalonador.getProcesso(self.escalonador.maiorPrioridade())
+        elif(statusProximoProcesso == "bloqueado"):
+            processoBloqueado = self.escalonador.getProcessoBloqueado()
+            cpuEst = processoBloqueado.getCpuEst()
+            cpu = processoBloqueado.getCpu()
+            Interface.cpu_salva_estado(cpu, cpuEst)
+            cpu.dorme()
+            return processoBloqueado
+        else:
+            self.printaTabelaProcessos()
+            self.printaTabelaTotais()
+            exit(0)
+    
+    def checaDormindo(self):
+        if Interface.cpu_interrupcao(self.cpu) == "dorme":
+            Interface.cpu_altera_estado(self.cpu, self.cpuEstado)
 
-so = SistemaOperacional()
-controlador = Controlador.Controlador(so.cpu, so, so.cpuEstado)
-so.inicializa(filaJobs, controlador)
+    
+    def desbloqueiaProcesso(self, idProcesso):
+        processoBloqueado = self.escalonador.getProcessoId(idProcesso)
+        print(f"Processo:{idProcesso}/{self.escalonador.getProcessoId(idProcesso).getJob().getPrograma()} desbloqueado na marca dos {self.timer.timerAgora()} segundos")
+        self.escalonador.desbloqueiaProcesso(idProcesso)
+        if self.jobAtual == processoBloqueado.getJob():
+            Interface.cpu_altera_estado(self.cpu, self.cpuEstado)
+            
+
+    def checaInterrupcao(self):
+        interrupcao = self.timer.getInterrupcao()
+        if(interrupcao != "nenhum"):
+            self.desbloqueiaProcesso(interrupcao)
+
+        
+    
+
+    def checaQuantum(self, tempoAtual):
+        return tempoAtual >= self.quantumProcesso
+
+    def printaTabelaProcessos(self):
+        self.timer.setRetorno()
+        self.timer.setPercentualCpu()
+        n = self.escalonador.getNumeroProcessos()
+        print("-"*(17 * n))
+        coluna = []
+        linha = "Tempo Cpu:Tempo Inicial:Tempo Final:Tempo Retorno:Percentual Cpu:Tempo Bloqueado:Bloqueios:Escalonamentos:Preempcoes".split(":")
+        dados = []
+        for i in range(n):
+            coluna.append(f"Processo {i+1}")
+        dados.append(self.timer.getTempoCpuProcesso())
+        dados.append(self.timer.getTempoInicio())
+        dados.append(self.timer.getTempoFim())
+        dados.append(self.timer.getTempoRetorno())
+        dados.append(self.timer.getPercentual())
+        dados.append(self.timer.getTempoBloqueado())
+        dados.append(self.timer.getNumeroBloqueios())
+        dados.append(self.timer.getNumeroEscalonamentos())
+        dados.append(self.timer.getNumeroPreempcao())
+        tabela = pd.DataFrame(data=dados, index=linha, columns=coluna)
+        print(tabela)        
+        print("-"*(17 * n))
+    
+    def printaTabelaTotais(self):
+        dados = []
+        coluna = ["Tempos Totais"]
+        linha = "Tempo Ativo:Tempo Ocioso:Execucoes do SO:Leituras:Escritas:Paradas:Trocas de processos:Preempcoes".split(":")
+        dados.append(self.timer.timerAgora())
+        dados.append(self.timer.getCountOcioso())
+        dados.append(self.contadorExecucao)
+        dados.append(self.contadorLeitura)
+        dados.append(self.contadorEscrita)
+        dados.append(self.contadorPara)
+        dados.append(self.contadorTrocaProcessos)
+        dados.append(self.timer.getPreemcoesTotais())
+        tabela = pd.DataFrame(data = dados, index=linha, columns=coluna)
+        print(tabela)

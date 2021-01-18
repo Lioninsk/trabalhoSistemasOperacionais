@@ -2,23 +2,26 @@
 #Disciplina: Sistemas Operacionais
 
 
-import Cpu, CpuEstado, Memoria, Interface
 
-memoria = Memoria.Memoria()#inicializa memoria
-cpu = Cpu.Cpu(memoria)#inicializa cpu passando acesso a memoria
-vet = [None]*4#inicializa vetor com 4 posicoes nulas
-cpuEstado = CpuEstado.CpuEstadoT()#inicializa cpu estado
-instrucoes = Interface.leituraDoArquivo()#leitura do arquivo
+import SO, Controlador, Descritor
 
-Interface.cpu_estado_inicializa(cpuEstado)#definição das variaveis iniciais cpuEstado
-Interface.cpu_altera_estado(cpu, cpuEstado)#definição das variaveis iniciais da cpu
-Interface.cpu_altera_programa(cpu, instrucoes)#passagem das instrucoes para memoria de programa
-Interface.cpu_altera_dados(cpu, vet)#passagem do vetor para memoria de dados
+job1 = Descritor.DescritorJobs("triplo", qtdMemoria=4, dispEntrada=f"/ES/", arqSaida=f"/ES/", tempoEntrada=3, tempoSaida=6, data = 1, prioridade=1)
+job2 = Descritor.DescritorJobs("soma", qtdMemoria=4, dispEntrada=f"/ES/", arqSaida=f"/ES/", tempoEntrada=3, tempoSaida=6, data= 2, prioridade=1)
 
-while(Interface.cpu_interrupcao(cpu) == "normal"):#enquanto não houver interrupção executa
-    Interface.executa(cpu)
+job3 = Descritor.DescritorJobs("grava", qtdMemoria=4, dispEntrada=f"/ES/", arqSaida=f"/ES/", tempoEntrada=3, tempoSaida=6, data= 3, prioridade=1)
+job4 = Descritor.DescritorJobs("grava2", qtdMemoria=4, dispEntrada=f"/ES/", arqSaida=f"/ES/", tempoEntrada=3, tempoSaida=6, data= 4, prioridade=1)
 
-print(f"Cpu parou na instrucao {Interface.cpu_instrucao(cpu)}.")
-print(f"O valor de m[0] eh {cpu.getValorMemoriaDeDados(0)}")
+job5 = Descritor.DescritorJobs("exemplo1", qtdMemoria=4, dispEntrada=f"/ES/", arqSaida=f"/ES/", tempoEntrada=3, tempoSaida=6, data= 5, prioridade=1)
+job6 = Descritor.DescritorJobs("exemplo2", qtdMemoria=4, dispEntrada=f"/ES/", arqSaida=f"/ES/", tempoEntrada=3, tempoSaida=6, data= 6, prioridade=1)
 
-###fim parte 1
+filaJobs = []
+filaJobs.append(job1)
+filaJobs.append(job2)
+filaJobs.append(job3)
+filaJobs.append(job4)
+filaJobs.append(job5)
+filaJobs.append(job6)
+
+so = SO.SistemaOperacional()
+controlador = Controlador.Controlador(so)
+so.inicializa(filaJobs, controlador)
