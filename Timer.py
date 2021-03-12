@@ -5,6 +5,7 @@ class Timer:
   count = 0
   countOcioso = 0
   countPreempcao = 0
+  falhaPagina = 0
   interrupcoes = []
 
 
@@ -27,14 +28,15 @@ class Timer:
   
   def getInterrupcao(self):
     if self.interrupcoes == []:
-       return "nenhum"
+       return None, "nenhum"
     self.aumentaTempoBloqueado(self.interrupcoes[0][2])
     if(self.count >= self.interrupcoes[0][1]):
-        interrupcao = self.interrupcoes[0][2]
+        processo, interrupcao = self.interrupcoes[0][2], self.interrupcoes[0][0]
         self.interrupcoes.pop(0)
     else:    
         interrupcao = "nenhum"
-    return interrupcao
+        processo = None
+    return processo, interrupcao
   
   
   def aumentaPreempcao(self):
@@ -52,6 +54,7 @@ class Timer:
     self.tempoFim = [0] * numero
     self.tempoBloqueado = [0] * numero
     self.tempoRetorno = [0] * numero
+    self.tempoFaltaPagina = [0] * numero
     self.numeroBloqueios = [0] * numero
     self.numeroEscalonamentos = [0] * numero
     self.numeroPreeempcao = [0] * numero
@@ -63,6 +66,9 @@ class Timer:
 
   def aumentaTempoBloqueado(self, processo):#feito
         self.tempoBloqueado[processo-1] += 1
+  
+  def aumentaTempoFaltaPagina(self, processo):
+        self.tempoFaltaPagina[processo-1] += 1
 
   def aumentaBloqueiosProcesso(self, processo):#feito
         self.numeroBloqueios[processo-1] += 1
@@ -73,6 +79,9 @@ class Timer:
   def aumentaPreempcaoProcesso(self, processo):#feito
         self.numeroPreeempcao[processo-1] += 1
   
+  def aumentaFalhaPagina(self, processo):
+        self.falhaPagina += 1
+  
   
   def setRetorno(self):
     for i in range(len(self.tempoFim)):
@@ -82,7 +91,14 @@ class Timer:
     for i in range(len(self.tempoCpuProcesso)):
       self.percentualCpu[i] = f"{int(round(self.tempoCpuProcesso[i] / self.count, 2) * 100)}%"
 
-  
+
+  def isInterrupcaoProcesso(self, processo):
+      if self.interrupcoes == []:
+        return
+      for interrupcao in self.interrupcoes:
+        if interrupcao[2] == processo:
+          return True
+      return False
 
   def getCountOcioso(self):
     return self.countOcioso
@@ -106,7 +122,10 @@ class Timer:
     return self.tempoRetorno
   def getPercentual(self):
     return self.percentualCpu
-  
+  def getFalhas(self):
+    return self.falhaPagina
+  def getTempoFaltaPagina(self):
+    return self.tempoFaltaPagina
   
   
 

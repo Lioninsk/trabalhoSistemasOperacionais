@@ -29,11 +29,11 @@ def cpu_salva_estado(cpu, cpuEstado):
 def cpu_altera_estado(cpu, cpuEstado):
     cpu.save(pc = cpuEstado.getPc(), acumulador = cpuEstado.getAcumulador(), estado = cpuEstado.getEstado())
 
-def cpu_altera_programa(cpu, instrucoes):
-    cpu.setMemoriaPrograma(instrucoes = instrucoes)
+def cpu_altera_programa(memoria, instrucoes):
+    memoria.setMemoriaPrograma(instrucoes)
 
-def cpu_altera_dados(cpu, vet):
-    cpu.setMemoriaDados(vet)
+def cpu_altera_dados(memoria, vet):
+    memoria.setMemoriaDados(vet)
 
 def cpu_interrupcao(cpu):
     return cpu.getEstado()
@@ -42,7 +42,6 @@ def cpu_instrucao (cpu):
     return cpu.getInstrucao()
 
 def cpu_estado_altera_acumulador(cpuEstado, novo_valor_do_acum):
-    
     cpuEstado.setAcumulador(novo_valor_do_acum)
 
 def retorna_cpuEstado_acumulador(cpuEstado):
@@ -63,14 +62,18 @@ def executa(cpu, cpuEstado):
     comando = instrucao[0]
     
     idInstrucao = Comandos.retornaComandoId(comando)
+
     if(idInstrucao != -1) :
         Comandos.executaComando(cpu, idInstrucao, instrucao)
+        if cpu.getEstado() == "pagina indisponivel":
+            return 
     else:
         if(cpu.getEstado() != "memory violation"):
             cpu_salva_estado(cpu, cpuEstado)
             cpu.setEstado("Interrompido")
         return
     if(cpu.getPc() == pcAnterior):#incrementa pc caso não haja interrupção ou desvio
+        
         incrementaPc(cpu)
 
 

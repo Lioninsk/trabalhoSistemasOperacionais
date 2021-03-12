@@ -15,7 +15,6 @@ class Escalonador:
         return "fim"
     
     def maiorPrioridade(self):
-        primeiroJob = self.listaProcessos[0].getJob()
         maior = 1
         for i in self.listaProcessos:
             job = i.getJob()
@@ -71,8 +70,19 @@ class Escalonador:
             if processo.getEstadoProcesso()=="bloqueado":
                 return processo
 
+    def getPaginaComNumero(self, numero):
+        for processo in self.listaProcessos:
+            tabela = processo.getTabela()
+            for pagina in tabela:
+                if pagina.getNumeroPagina() == numero: 
+                    return pagina
 
+    def getProcessoPagina(self, pagina):
+        for processo in self.listaProcessos:
+            for pag in processo.getTabela():
+                if pag == pagina:
+                    return processo 
+    
 
-        
         
         
