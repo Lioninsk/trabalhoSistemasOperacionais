@@ -2,7 +2,6 @@ import DescritorPagina as dp
 import Memoria
 
 class Mmu():
-    tabela = []
     fila = []
     def __init__(self, memoria):
         self.memoria = memoria
@@ -14,17 +13,34 @@ class Mmu():
     def traduzEndereco(self, enderecoLogico):
         posicao = enderecoLogico[1]
         tamanho = self.tamanhoPagina
-        pagina = self.getTabela()[0]
-        cont = 1
-        while posicao >= tamanho:
-            try:
-                pagina = self.getTabela()[cont]
-            except:
-                print("Erro de pagina")
-                exit(-1)
-            cont+=1
-            posicao -= tamanho
-        return (pagina.getQuadro()-1) * self.tamanhoPagina + posicao
+        # cont = 1
+        for pag in self.tabela:
+            if pag.getQuadro() - 1 == posicao:
+                pagina = pag
+        # print(f"posicao:{posicao} tamanho:{tamanho} cont:{cont} pagina:{pagina} quadro:{pagina.getQuadro()}")
+        # while posicao + 1 != pagina.getQuadro():
+        #     try:
+        #         pagina = self.getTabela()[cont]
+        #         print(f"posicao:{posicao} tamanho:{tamanho} cont:{cont} pagina:{pagina} quadro:{pagina.getQuadro()}")
+        #     except:
+        #         print(f"Erro de paginaaaa, cont:{cont}, pos:{posicao} tamanho:{tamanho}")
+        #         exit(-1)
+        #     cont+=1
+        
+        print(f"pos:{posicao} tam:{tamanho}")
+        if not pagina.getPaginaValida():
+            print("=================MMU - TRADUÇÃO===============")
+            for pag in self.tabela:
+                    print(f"\n{pag}, Valida:{pag.getPaginaValida()}")
+            print(f"\nOh não, a {pagina} com quadro:{pagina.getQuadro()} não é valida!!!!\n")
+            print("================================")
+            return None
+        print(f"==========Tradução=============")
+        for pag in self.tabela:
+            print(f"\n{pag}, Valida:{pag.getPaginaValida()}")
+        resultado = (pagina.getQuadro()-1) * self.tamanhoPagina
+        print(f"=-=-=- Colocando valor na posicao:{resultado}")
+        return resultado
     
     def checkPosicao(self, posicao):
         return posicao < 0
@@ -38,17 +54,15 @@ class Mmu():
     
     def setNumeroMemoria(self, enderecoLogico, valor):
         if self.checkPosicao(enderecoLogico[1]):
-            exit(-1) 
-        enderecoFisico = self.traduzEndereco(enderecoLogico)
+            exit(-1)
         pagina = self.getPaginaPosicao(enderecoLogico[0], enderecoLogico[1])
-        pagina.setPaginaValida(False)
+ 
+        enderecoFisico = self.traduzEndereco(enderecoLogico)
+        # pagina.setPaginaValida(False)
         self.memoria.setNumeroMemoriaDeDados(enderecoFisico, valor)
         pagina.setPaginaValida(True)
         self.alteraPagina(enderecoLogico[0], enderecoLogico[1])
-        numeroPagina = pagina.getQuadro()
-        if numeroPagina not in self.fila: 
-            self.fila.append(numeroPagina)
-        print(f"Fila {self.fila}")
+        print(f"=-=-=- {pagina} com quadro:{pagina.getQuadro()} utilizada! ")
 
     def getInstrucao(self,pc):
         return self.memoria.getInstrucao(pc)
@@ -65,19 +79,19 @@ class Mmu():
         pagina.setPaginaAlterada(True)
     
     def getPaginaPosicao(self, paginas, posicao):
-        tamanho = self.memoria.getTamanhoQuadro()
-        cont = 0
-        if posicao < tamanho:
-            pagina = paginas[0]
-        else:
-            while(posicao > tamanho):
-                cont += 1
-                pagina = pagina[cont]
-                tamanho += 4
+        for pagina in paginas:
+            if pagina.getQuadro()-1 == posicao: 
+                break
         return pagina
 
     def getFila(self):
         return self.fila
+    
+    def invalidaPagina(self, enderecoLogico):
+        
+        pagina = self.getPaginaPosicao(enderecoLogico[0], enderecoLogico[1])
+        print(f"\n@+@+@++@+@{pagina}, Valida:{pagina.getPaginaValida()} - APAGADAAAAAAAAAA")
+        pagina.setPaginaValida(False)
  
 
 

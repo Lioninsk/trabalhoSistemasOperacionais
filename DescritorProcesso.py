@@ -1,3 +1,4 @@
+import Interface as it
 class DescritorProcesso:
 
     def __init__(self, job, memoriaDados, memoriaPrograma, cpuBack, cpuEstBack, tabelaPaginas):
@@ -29,8 +30,11 @@ class DescritorProcesso:
     def getTabela(self):
         return self.tabelaPaginas
     
-    def setMemoriaDados(self, memoriaDados):
-        self.memoriaDados =  memoriaDados
+    def setMemoriaDados(self, memoriaDados, quadro):
+        quadro -= 1
+        for i in memoriaDados:
+            self.memoriaDados[quadro] = i
+            quadro+=1
     def setmemoriaPrograma(self, memoriaPrograma):
         self.memoriaPrograma = memoriaPrograma
     def setCpu(self, cpuInfo):
@@ -45,12 +49,16 @@ class DescritorProcesso:
         self.tabelaPaginas = tabela
     
     def getPaginaInvalida(self):
+        print(f"Tabela:{self.tabelaPaginas}")
+        print("===================Descritor Processo=========================\n")
+        numeroQuadro = int(it.cpu_instrucao(self.cpuBack).split()[1]) + 1
         for pagina in self.tabelaPaginas:
-            print(f"Num pagina:{pagina.getNumeroPagina()} valida:{pagina.getPaginaValida()} alterada:{pagina.getPaginaAlterada()}")
-            if not pagina.getPaginaValida() and not pagina.getPaginaAlterada():
+            print(f"\nPagina:{pagina}, Quadro:{pagina.getQuadro()} numQuadro:{numeroQuadro}")
+            if pagina.getQuadro() == numeroQuadro:
                 pagina.setPaginaValida(True)
+                print("============================================\n")
                 return pagina
-        print("Pagina não encontrada!")
+        print("Pagina não encontrada! descritor processo")
         exit(-2) 
     
 

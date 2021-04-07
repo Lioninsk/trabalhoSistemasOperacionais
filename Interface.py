@@ -41,8 +41,8 @@ def cpu_interrupcao(cpu):
 def cpu_instrucao (cpu):
     return cpu.getInstrucao()
 
-def cpu_estado_altera_acumulador(cpuEstado, novo_valor_do_acum):
-    cpuEstado.setAcumulador(novo_valor_do_acum)
+def cpu_estado_altera_acumulador(cpuEstado, novo_valor):
+    cpuEstado.setAcumulador(novo_valor)
 
 def retorna_cpuEstado_acumulador(cpuEstado):
     return cpuEstado.getAcumulador()

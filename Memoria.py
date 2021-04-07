@@ -1,8 +1,10 @@
 class Memoria:
     memoriaDePrograma = []
+    # tamanho = 4
+    # pagina = 1
     tamanho = 4
+    pagina = 1
     memoriaDeDados = [None] * tamanho
-    pagina = 4
 
 
     def getLinhaMemoriaPrograma(self, i):
@@ -23,7 +25,11 @@ class Memoria:
         self.memoriaDeDados[i] = numero
     
     def getValorMemoriaDeDados(self, i):
-        return self.memoriaDeDados[i]
+        try:
+            return self.memoriaDeDados[i]
+        except:
+           print("Error getting value!")
+           exit(0)
     
     def getQuadro(self, inicio, fim):
         if inicio < 0 or fim >= len(self.memoriaDeDados):
@@ -35,9 +41,17 @@ class Memoria:
     
     def setQuadro(self, inicio, fim, valores):
         indice = 0
-        for i in range(inicio, fim+1):
-            self.memoriaDeDados[i] = valores[indice]
-            indice += 1
+        try:
+            for i in range(inicio, fim+1):
+                self.memoriaDeDados[i] = valores[indice]
+                indice += 1
+            print("Deu bom!")
+            print(self.memoriaDeDados)
+        except:
+            print("Deu ruim!")
+            print(f"Inicio:{inicio} Fim:{fim}")
+            print(f"MemoriaDados:{self.memoriaDeDados} Valores:{valores}")
+            exit(0)
     
 
     def getTamanhoQuadro(self):

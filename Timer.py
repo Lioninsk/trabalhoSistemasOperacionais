@@ -12,7 +12,7 @@ class Timer:
   
   
   def aumentaContador(self, interrupcao, processo):
-    time.sleep(1)
+    # time.sleep(1)
     self.count += 1
 
     if interrupcao == "dorme":
