@@ -29,12 +29,12 @@ class DescritorProcesso:
         return self.quantum
     def getTabela(self):
         return self.tabelaPaginas
+    def getValorMemoriaDados(self,index):
+        return self.memoriaDados[index]
     
-    def setMemoriaDados(self, memoriaDados, quadro):
-        quadro -= 1
-        for i in memoriaDados:
-            self.memoriaDados[quadro] = i
-            quadro+=1
+    def setMemoriaDados(self, dado, quadro):
+        self.memoriaDados[quadro] = dado 
+
     def setmemoriaPrograma(self, memoriaPrograma):
         self.memoriaPrograma = memoriaPrograma
     def setCpu(self, cpuInfo):
@@ -48,10 +48,17 @@ class DescritorProcesso:
     def setTabelaPaginas(self, tabela):
         self.tabelaPaginas = tabela
     
-    def getPaginaInvalida(self):
+    def getPaginaInvalida(self, memoria):
         print(f"Tabela:{self.tabelaPaginas}")
         print("===================Descritor Processo=========================\n")
-        numeroQuadro = int(it.cpu_instrucao(self.cpuBack).split()[1]) + 1
+        instrucao = it.cpu_instrucao(self.cpuBack).split()
+        if instrucao[0] != "ARMX":
+            numeroQuadro = int(instrucao[1]) + 1
+        else:
+            print("ENTROUUUUU")
+            numeroQuadro = memoria.getValorMemoriaDeDados(int(instrucao[1])) + 1
+        print(f"+_+_+_+_+_+_+ INSTRUÇÃO:{it.cpu_instrucao(self.cpuBack)}")
+        print(f"Quadro:{numeroQuadro} ")
         for pagina in self.tabelaPaginas:
             print(f"\nPagina:{pagina}, Quadro:{pagina.getQuadro()} numQuadro:{numeroQuadro}")
             if pagina.getQuadro() == numeroQuadro:

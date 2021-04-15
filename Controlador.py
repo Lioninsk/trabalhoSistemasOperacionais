@@ -18,15 +18,17 @@ class Controlador:
             Interface.executa(self.cpu, self.cpuEstado)
             print(f"Memoria:{self.so.memoria.memoriaDeDados}")
             print(f"Memoria virtual do processo:{processo.getMemoriaDados()}")
-            print(f"=====================CONTROLADOR==================")
-            vet = []
-            for proc in self.so.escalonador.getListaProcessos():
-                for pagina in proc.getTabela():
-                    if pagina.getPaginaValida():
-                        vet.append(pagina.getPaginaValida())
-                    print(f"{pagina} - {pagina.getPaginaValida()} - Quadro:{pagina.getQuadro()}") 
-            print(f"====================_+ cont:{len(vet)}+_=====================")
-            print(f"================================================")
+            print(f"Mapa:{self.so.mapaMemoria}")
+            # print(f"=====================CONTROLADOR==================")
+            # vet = []
+            # for proc in self.so.escalonador.getListaProcessos():
+            #     for pagina in proc.getTabela():
+            #         if pagina.getPaginaValida():
+            #             vet.append(pagina.getPaginaValida())
+            #         print(f"{pagina} - {pagina.getPaginaValida()} - Quadro:{pagina.getQuadro()}") 
+            # print(f"====================_+ cont:{len(vet)}+_=====================")
+            # print(f"================================================")
+
 
             interrupcao = Interface.cpu_interrupcao(self.cpu)
             if interrupcao == "pagina indisponivel":

@@ -7,6 +7,7 @@ class Timer:
   countPreempcao = 0
   falhaPagina = 0
   interrupcoes = []
+  processos = []
 
 
   
@@ -14,7 +15,9 @@ class Timer:
   def aumentaContador(self, interrupcao, processo):
     # time.sleep(1)
     self.count += 1
-
+    # if self.count == 87:
+    #   exit(0)
+    self.aumentaTempoEscalonado(processo)
     if interrupcao == "dorme":
        self.countOcioso += 1
     else:
@@ -30,6 +33,8 @@ class Timer:
     if self.interrupcoes == []:
        return None, "nenhum"
     self.aumentaTempoBloqueado(self.interrupcoes[0][2])
+    if "pagina" in self.interrupcoes[0][0]:
+      self.aumentaTempoEsperandoPagina(self.interrupcoes[0][2])
     if(self.count >= self.interrupcoes[0][1]):
         processo, interrupcao = self.interrupcoes[0][2], self.interrupcoes[0][0]
         self.interrupcoes.pop(0)
@@ -59,6 +64,10 @@ class Timer:
     self.numeroEscalonamentos = [0] * numero
     self.numeroPreeempcao = [0] * numero
     self.percentualCpu = [0] * numero
+    self.tempoNaoEscalonado = [0] * numero
+    self.tempoEsperandoPagina = [0] * numero
+    for i in range(1, numero+1):
+      self.processos.append(i)
 
 
   def aumentaTempoCpu(self, processo):#feito
@@ -81,6 +90,14 @@ class Timer:
   
   def aumentaFalhaPagina(self, processo):
         self.falhaPagina += 1
+  
+  def aumentaTempoEscalonado(self, processo):
+        for proc in self.processos:
+          if proc != processo:
+            self.tempoNaoEscalonado[proc-1] += 1
+  
+  def aumentaTempoEsperandoPagina(self, processo):
+        self.tempoEsperandoPagina[processo-1] += 1
   
   
   def setRetorno(self):
@@ -126,6 +143,10 @@ class Timer:
     return self.falhaPagina
   def getTempoFaltaPagina(self):
     return self.tempoFaltaPagina
+  def getTempoNaoEscalado(self):
+    return self.tempoNaoEscalonado
+  def getTempoEsperandoPagina(self):
+    return self.tempoEsperandoPagina
   
   
 

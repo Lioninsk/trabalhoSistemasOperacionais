@@ -1,6 +1,6 @@
 class DescritorPagina():
     def __init__(self, paginaNumero):
-        self.valido = True
+        self.valido = False
         self.paginaNumero = paginaNumero
         self.quadro = paginaNumero
         self.paginaAlteravel = True

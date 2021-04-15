@@ -7,7 +7,7 @@ class SistemaOperacional:
 
     def __init__(self):
         self.memoria = Memoria.Memoria()
-        self.mmu = Mmu.Mmu(self.memoria)
+        self.escalonador = Escalonador.Escalonador()
         self.dir = os.path.dirname(os.path.realpath(__file__))
         self.timer = Timer.Timer()
         self.contadorExecucao = 0
@@ -17,6 +17,8 @@ class SistemaOperacional:
         self.contadorFalhasPagina = 0
         self.contadorTrocaProcessos = 0
         self.dispositivoLinha = {}
+        self.mapaMemoria = []
+        self.mmu = Mmu.Mmu(self.memoria, self.escalonador, self.mapaMemoria)
         
     
     def retornaId(self, comando):
@@ -90,33 +92,33 @@ class SistemaOperacional:
             exit(-2)
     
     def inicializa(self, filaJobs, controlador):
-        self.escalonador = Escalonador.Escalonador()
+        contadorPaginas = 1
         tabelaPaginas = [None]
         for job in filaJobs:
-            tabelaPaginas = self.criaPaginas(job.getQtdMemoria())
+            contadorPaginas, tabelaPaginas = self.criaPaginas(job.getQtdMemoria(), contadorPaginas)
             instrucoes = Interface.leituraArquivo(job.getPrograma()) 
             vet = [None]*job.getQtdMemoria()#inicializa vetor com a memoria do job
             self.escalonador.setProcesso(DescritorProcesso.DescritorProcesso(job, vet, instrucoes, [], [], tabelaPaginas))
             self.mapeiaPaginas(tabelaPaginas)
         self.execucaoProcessos(controlador)
 
-    def criaPaginas(self, tamanhoMemoriaDados):
-        contadorPaginas = 0
+    def criaPaginas(self, tamanhoMemoriaDados, contadorPaginas):
+        
         paginas = []
         if tamanhoMemoriaDados == 0:
             return contadorPaginas, paginas
         tamanhoPagina = self.memoria.getTamanhoQuadro()
         if tamanhoMemoriaDados <= tamanhoPagina:
-            contadorPaginas+=1
             paginas.append(DescritorPagina.DescritorPagina(contadorPaginas))
+            contadorPaginas+=1
         else:
             while tamanhoMemoriaDados > 0:
-                contadorPaginas+=1
                 paginas.append(DescritorPagina.DescritorPagina(contadorPaginas))
+                contadorPaginas+=1
                 tamanhoMemoriaDados -= tamanhoPagina
         if self.escalonador.paginasOcupadas() == self.memoria.getTamanhoMemoria():
             self.invalidaPaginas(paginas)
-        return paginas
+        return contadorPaginas, paginas
     
     def invalidaPaginas(self, paginas):
         for pagina in paginas:
@@ -125,19 +127,21 @@ class SistemaOperacional:
 
     
     def mapeiaPaginas(self, tabela):
-        tamanhoMemoria = self.memoria.getTamanhoMemoria()
-        tamanhoPagina = self.memoria.getTamanhoQuadro()
-        if tamanhoPagina * tamanhoMemoria == len(self.mmu.getFila()):
-            return
         for pagina in tabela:
-            self.mmu.getFila().append(pagina.getNumeroPagina())
+            pagina.setQuadro(None)
+        tam = self.memoria.getTamanhoMemoria()
+        if self.mapaMemoria == []:
+            for idx in range(tam):
+                self.mapaMemoria.append([None,idx,idx])
+        
+
+
 
     def execucaoProcessos(self, controlador):
         self.timer.numeroDeProcessos(self.escalonador.getNumeroProcessos())#prepara o timer para suportar informações com base no numero de processos
         while True:
 
             processoAtual = self.proximoProcesso()
-            self.organizaQuadros(processoAtual)
             print(processoAtual)
             self.mmu.setTabela(processoAtual.getTabela())
 
@@ -245,7 +249,7 @@ class SistemaOperacional:
         n = self.escalonador.getNumeroProcessos()
         print("-"*(17 * n))
         coluna = []
-        linha = "Tempo Cpu:Tempo Inicial:Tempo Final:Tempo Retorno:Percentual Cpu:Tempo Bloqueado:Bloqueios:Escalonamentos:Preempcoes:Falhas de pagina".split(":")
+        linha = "Tempo Cpu:Tempo Inicial:Tempo Final:Tempo Retorno:Percentual Cpu:Tempo Bloqueado:Tempo não escalonado:Tempo esperando pagina:Bloqueios:Escalonamentos:Preempcoes:Falhas de pagina".split(":")
         dados = []
         for i in range(n):
             coluna.append(f"Processo {i+1}")
@@ -255,6 +259,8 @@ class SistemaOperacional:
         dados.append(self.timer.getTempoRetorno())
         dados.append(self.timer.getPercentual())
         dados.append(self.timer.getTempoBloqueado())
+        dados.append(self.timer.getTempoNaoEscalado())
+        dados.append(self.timer.getTempoEsperandoPagina())
         dados.append(self.timer.getNumeroBloqueios())
         dados.append(self.timer.getNumeroEscalonamentos())
         dados.append(self.timer.getNumeroPreempcao())
@@ -281,20 +287,15 @@ class SistemaOperacional:
     
     def alocaPagina(self, processoAtual):
         fila = self.mmu.getFila()
-        primeiraPagina = self.checkPaginas()
+        primeiraPagina = self.retornaPrimeiraPagina()
         if not primeiraPagina:
             return
-        paginaFaltante = processoAtual.getPaginaInvalida()
-        print(f"PRIMEIRA:{primeiraPagina} FALTANTE:{paginaFaltante}")
-        print(f"PrimeiraQuadro1:{primeiraPagina.getQuadro()} FaltanteQuadro:{paginaFaltante.getQuadro()}")
+        print(f"PRIMEIRA:{primeiraPagina}")
+        print(f"PrimeiraQuadro:{primeiraPagina.getQuadro()}")
         self.desaloca(primeiraPagina, processoAtual)
         fila.append(fila.pop(0))
         print(f"FILA:{fila}")
-        primeiraPaginaQuadro = primeiraPagina.getQuadro()
-        paginaFaltante.setQuadro(primeiraPaginaQuadro)
-        # primeiraPagina.setQuadro(quadroPaginaFaltante)
-        print(f"PrimeiraQuadro2:{primeiraPagina.getQuadro()} FaltanteQuadro:{paginaFaltante.getQuadro()}")
-        self.aloca(paginaFaltante)
+        self.aloca(primeiraPagina, processoAtual)
         print("==============ALOCA=======================")
         for programa in self.escalonador.getListaProcessos():
             for pagina in programa.getTabela():
@@ -302,52 +303,49 @@ class SistemaOperacional:
         
 
     def desaloca(self, paginaAlocada, processoAtual):
-        inicio, fim = self.inicioFimPagina(paginaAlocada)
-        valores = self.memoria.getQuadro(inicio, fim)
+        
+        valor = self.getValorPaginaMapa(paginaAlocada)
         processo = self.escalonador.getProcessoPagina(paginaAlocada)
-        processo.setMemoriaDados(valores, paginaAlocada.getQuadro())
-        paginaAlocada.setPaginaValida(False)
+        processo.setMemoriaDados(valor, paginaAlocada.getQuadro())
+        print(F"VALOR {valor} COLOCADO NA POSICAO {paginaAlocada.getQuadro()}")
+        paginaAlocada.setPaginaValida(False) 
         paginaAlocada.setPaginaAcessada(False)
         paginaAlocada.setPaginaAlterada(False)
-        self.memoria.setQuadro(inicio, fim, [None] * self.memoria.getTamanhoQuadro())
         tempoLeitura = processo.getJob().getTempoLeitura() + self.timer.timerAgora()
         self.timer.setInterrupcao(tempoLeitura, "leitura de pagina", processoAtual.getJob().getData())
         print(f"=-=-=-= {paginaAlocada} desalocada!!!!!")
         self.processoDorme()
 
-    def aloca(self, pagina):
-        inicio, fim = self.inicioFimPagina(pagina)
+    def aloca(self, pagina, processoAtual):
         processo = self.escalonador.getProcessoPagina(pagina)
-        self.timer.aumentaFalhaPagina(processo.getJob().getData())
-        self.timer.aumentaTempoFaltaPagina(processo.getJob().getData())
-        valores = processo.getMemoriaDados()
-        self.memoria.setQuadro(inicio, fim, valores)
-        tempoEscrita = processo.getJob().getTempoEscrita() + processo.getJob().getTempoLeitura() + self.timer.timerAgora()
-        self.timer.setInterrupcao(tempoEscrita, "escrita de pagina", processo.getJob().getData())
+        numeroProcessoAnterior = processo.getJob().getData()
+        self.timer.aumentaFalhaPagina(processoAtual.getJob().getData())
+        self.timer.aumentaTempoFaltaPagina(processoAtual.getJob().getData())
+        valor = processoAtual.getValorMemoriaDados(pagina.getQuadro())
+        self.memoria.setNumeroMemoriaDeDados(self.getQuadroMapa(pagina, numeroProcessoAnterior), valor)
+        self.organizaMapa(pagina, processoAtual.getJob().getData(), numeroProcessoAnterior)
+        tempoEscrita = processoAtual.getJob().getTempoEscrita() + processoAtual.getJob().getTempoLeitura() + self.timer.timerAgora()
+        self.timer.setInterrupcao(tempoEscrita, "escrita de pagina", processoAtual.getJob().getData())
+        
         pagina.setPaginaAlterada(False)
         pagina.setPaginaAcessada(False)
         pagina.setPaginaValida(True)
-        # self.escalonador.organizaPaginas()
         print(f"=-=-=-= {pagina} alocada!!!!!")
     
-    def inicioFimPagina(self, pagina):
-        tamPagina = self.memoria.getTamanhoQuadro()
-        inicio = (pagina.getQuadro() - 1) * tamPagina
-        fim = inicio + (tamPagina - 1)
-        return inicio, fim
+
     
-    def checkPaginas(self):
+    def retornaPrimeiraPagina(self):
         fila = self.mmu.getFila()
         print(f"Fila:{fila}")
         print("=-=-=-=-=-=-=-=-=-=-=-")
-        for programa in self.escalonador.getListaProcessos():
-            for pagina in programa.getTabela():
-                print(f"Pagina:{pagina} valida:{pagina.getPaginaValida()}")
+        # for programa in self.escalonador.getListaProcessos():
+        #     for pagina in programa.getTabela():
+        #         print(f"Pagina:{pagina} valida:{pagina.getPaginaValida()}")
         print("=-=-=-=-=-=-=-=-=-=-=-")
         for quadro in fila: 
-            pagina = self.escalonador.getPaginaComQuadro(quadro) 
-            self.contadorFalhasPagina += 1
+            pagina = self.escalonador.getPaginaComQuadro(quadro, self.mapaMemoria) 
             if pagina != None:
+                self.contadorFalhasPagina += 1
                 print(f"RETORNANDO PAGINA DISPONIVEL")
                 return pagina
         print("RETURN")
@@ -359,62 +357,33 @@ class SistemaOperacional:
         self.cpuEstado.setAcumulador(self.cpu.getAcumulador())
         self.cpuEstado.setEstado("normal")
 
-
-    def organizaQuadros(self, processoAtual):
-        valor = self.quadroRepetido(processoAtual)
-        if not valor:
-            return 
-        print("==========ORGANIZA inicio=========")
-        for processo in self.escalonador.listaProcessos:
-            for pagina in processo.getTabela():
-                print(f"{pagina} Valida:{pagina.getPaginaValida()} Quadro:{pagina.getQuadro()}")
-        for pag in processoAtual.getTabela():
-            for pagina in processoAtual.getTabela():
-                if pagina != pag and pagina.getQuadro() == pag.getQuadro():
-                    if not pagina.getPaginaValida():
-                        print("\n PAGINA PAGINA\n")
-                        pagina.setQuadro(valor)
-                    elif not pag.getPaginaValida():
-                        pag.setQuadro(valor)
-                        print("\n PAG PAG\n")
-                    elif pagina.getPaginaValida() == True and pag.getPaginaValida() == True:
-                        print("\nTRUEEEEEEE TRUEEEEEEEEEE\n")
-                        pagina.setQuadro(valor)
-                        pagina.setPaginaValida(False)
-                        self.reoragnizaQuadro()
-                        self.cpu.setEstado("pagina indisponivel")
-
-        print("==========ORGANIZA fim=========")
-        for processo in self.escalonador.listaProcessos:
-            for pagina in processo.getTabela():
-                print(f"{pagina} Valida:{pagina.getPaginaValida()} Quadro:{pagina.getQuadro()}")
     
-    def quadroRepetido(self, processoAtual):
-        tam = processoAtual.getJob().getQtdMemoria()
-        lista = []
-        for pagina in processoAtual.getTabela():
-            lista.append(pagina.getQuadro())
-        for i in range(1, tam+1):
-            if i not in lista:
-                return i
-        return False
 
-    def reoragnizaQuadro(self):
-        valor = self.quadroUnico()
-        for programa in self.escalonador.getListaProcessos():
-            for pagina in programa.getTabela():
-                if pagina.getQuadro() == valor and not pagina.getPaginaValida():
-                    pagina.setPaginaValida(True)
-                    return
 
-    def quadroUnico(self):
-        vet = []
-        tam = self.memoria.getTamanhoMemoria()
-        for programa in self.escalonador.getListaProcessos():
-            for pagina in programa.getTabela():
-                if pagina.getPaginaValida():
-                    vet.append(pagina.getQuadro())
-        for i in vet:
-          if vet.count(i) == 1:
-               return i
 
+    def getValorPaginaMapa(self, pagina):
+        numeroProcesso = self.escalonador.getProcessoPagina(pagina).getJob().getData()
+        for pos in self.mapaMemoria:
+            if pos[0] == numeroProcesso and pos[1] == pagina.getQuadro():
+                return self.memoria.getValorMemoriaDeDados(pos[2])
+
+
+    def getQuadroMapa(self, pagina, numeroProcesso):
+        # numeroProcesso = self.escalonador.getProcessoPagina(pagina).getJob().getData()
+        print(f"quadro:{pagina.getQuadro()}")
+        for pos in self.mapaMemoria:
+            print(f"pos2:{pos[2]}")
+            if  pos[1] == pagina.getQuadro() and pos[0] == numeroProcesso:
+                return pos[2]
+        print("Não encontrado!!! - getQuadroMapa")
+        exit(0)
+
+    def organizaMapa(self, pagina, numeroProcesso, numeroProcessoAnterior):
+        
+        for pos in self.mapaMemoria:
+            if pos[0] == numeroProcessoAnterior and pos[1] == pagina.getQuadro():
+                pos[0] = numeroProcesso
+                pos[1] = None
+                return
+        print("Não encontrado!!! - organizaMapa")
+        exit(0)

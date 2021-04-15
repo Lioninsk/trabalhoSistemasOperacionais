@@ -1,5 +1,5 @@
 class Escalonador:
-    quantum = 10
+    quantum = 15
     listaProcessos = []
     
     def setProcesso(self, processo):
@@ -70,14 +70,14 @@ class Escalonador:
             if processo.getEstadoProcesso()=="bloqueado":
                 return processo
 
-    def getPaginaComQuadro(self, quadro):
-        for processo in self.listaProcessos:
-            tabela = processo.getTabela()
-            print("==========Escalonador===================")
-            for pagina in tabela:
-                print(f"=======================\nPagina:{pagina}\nValida:{pagina.getPaginaValida()}\nQuadro:{pagina.getQuadro()}\nQuadro atual:{quadro}")
-                if pagina.getQuadro() == quadro and pagina.getPaginaValida(): 
-                    return pagina
+    def getPaginaComQuadro(self, quadro, mapa):
+        for pos in mapa:
+            if pos[2] == quadro:
+                for processo in self.listaProcessos:
+                    if processo.getJob().getData() == pos[0]:
+                        for pagina in processo.getTabela():
+                            if pagina.getQuadro() == pos[1]:
+                                return pagina
         return None
             
     def getProcessoPagina(self, pagina):

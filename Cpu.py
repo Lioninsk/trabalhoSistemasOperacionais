@@ -42,31 +42,20 @@ class Cpu:
     
     def getValorMemoriaDeDados(self, posicao):
         enderecoLogico = [self.mmu.getTabela(), posicao]
-        try:
-            valor = self.mmu.getNumeroMemoria(enderecoLogico)
-        except:
-            self.mmu.invalidaPagina(enderecoLogico)
-            self.estado = "pagina indisponivel"
-            return 0
-            
-        if valor == None:
-            # self.mmu.invalidaPagina(enderecoLogico)
-            self.estado = "pagina indisponivel"
-            return 0
-        else:
-            return valor
+        return self.mmu.getNumeroMemoria(enderecoLogico)
     
     def setNumeroMemoriaDeDados(self, posicao, numero):
         enderecoLogico = [self.mmu.getTabela(), posicao]
         try:
             self.mmu.setNumeroMemoria(enderecoLogico, numero)
         except Exception as error:
-            print(f"Error:{error}")
-            self.mmu.invalidaPagina(enderecoLogico)
+            print(f"Errorrrrrrrrrrrrrrrrr:{error}")
+            print("OH NOOOOO =========SET")
             self.estado = "pagina indisponivel"
     
     def dorme(self):
         self.estado = "dorme"
+    
 
 
     
